@@ -4,6 +4,7 @@ import { useContractExistsAtAddress, useContractLoader } from "eth-hooks";
 import Account from "../Account";
 import DisplayVariable from "./DisplayVariable";
 import FunctionForm from "./FunctionForm";
+import ApproveForm from "./ApproveForm";
 
 const noContractDisplay = (
   <div>
@@ -44,6 +45,7 @@ const noContractDisplay = (
 const isQueryable = fn => (fn.stateMutability === "view" || fn.stateMutability === "pure") && fn.inputs.length === 0;
 
 export default function Contract({
+  dexAddress,
   customContract,
   account,
   gasPrice,
@@ -73,6 +75,14 @@ export default function Contract({
           fn => fn[1]["type"] === "function" && !(show && show.indexOf(fn[1]["name"]) < 0),
         )
       : [];
+    // for (let i = 0; i < results.length; i++) {
+    //   if (name === "Balloons" && results[i][0] === "approve(address,uint256)") {
+    //     console.log("BALLOOOOOONS");
+    //     // console.log(show);
+    //     // console.log(results[i][0]);
+    //     switchToBtn = true;
+    //   } 
+    // }
     return results;
   }, [contract, show]);
 
@@ -98,16 +108,31 @@ export default function Contract({
       }
 
       // If there are inputs, display a form to allow users to provide these
-      return (
-        <FunctionForm
-          key={"FF" + contractFuncInfo[0]}
-          contractFunction={contractFunc}
-          functionInfo={contractFuncInfo[1]}
-          provider={provider}
-          gasPrice={gasPrice}
-          triggerRefresh={triggerRefresh}
-        />
-      );
+      console.log(contractFuncInfo);
+      if (contractFuncInfo[0] === "approve(address,uint256)") {
+        return (
+          <ApproveForm
+            key={"FF" + contractFuncInfo[0]}
+            contractFunction={contractFunc}
+            functionInfo={contractFuncInfo[1]}
+            provider={provider}
+            gasPrice={gasPrice}
+            triggerRefresh={triggerRefresh}
+            dexAddress={dexAddress}
+          />
+        );
+      } else {
+        return (
+          <FunctionForm
+            key={"FF" + contractFuncInfo[0]}
+            contractFunction={contractFunc}
+            functionInfo={contractFuncInfo[1]}
+            provider={provider}
+            gasPrice={gasPrice}
+            triggerRefresh={triggerRefresh}
+          />
+        );
+      }
     }
     return null;
   });

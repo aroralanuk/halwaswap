@@ -156,6 +156,7 @@ export default function Dex(props) {
             provider={props.localProvider}
             show={["balanceOf", "approve"]}
             address={props.address}
+            dexAddress={contractAddress}
             blockExplorer={props.blockExplorer}
             contractConfig={props.contractConfig}
           />

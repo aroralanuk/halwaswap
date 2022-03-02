@@ -1,6 +1,6 @@
 pragma solidity >=0.8.0 <0.9.0;
 // SPDX-License-Identifier: MIT
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract DEX {
@@ -55,8 +55,10 @@ contract DEX {
   }
 
   function withdraw(uint256 liq_amount) public returns (uint256, uint256) {
+    require(liq_amount <= liquidity[msg.sender], "DEX: can't withdraw more than you deposited");
     uint256 token_reserve = token.balanceOf(address(this));
     uint256 eth_amount = (liq_amount * address(this).balance) / totalLiquidity;
+    console.log("token_reserve: %s,  eth_amount: %s, liq_amount: %s", token_reserve, eth_amount, liq_amount);
     uint256 token_amount = (token_reserve * liq_amount) / totalLiquidity;
     liquidity[msg.sender] -= liq_amount;
     totalLiquidity -= liq_amount;
