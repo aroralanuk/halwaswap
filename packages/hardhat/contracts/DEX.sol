@@ -2,13 +2,19 @@ pragma solidity >=0.8.0 <0.9.0;
 // SPDX-License-Identifier: MIT
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./lib/SafeMath.sol";
 
 contract DEX {
-
+  using SafeMath  for uint256;
+  uint256 public HALWA_SUPPLY = 1000000 * 10**18;
   IERC20 token;
 
   uint256 public totalLiquidity;
   mapping (address => uint256) public liquidity;
+
+  address[] public lp;
+  mapping(address => uint256) public lpFees;
+  uint256 public totalFees;
 
   constructor(address token_addr) {
     token = IERC20(token_addr);
@@ -27,10 +33,26 @@ contract DEX {
     return (input_amount_with_fee  * output_reserve) / (input_reserve + input_amount_with_fee);
   }
 
+  function calLPFees(uint256 input_amount) public view returns (uint256) {
+    uint256 fee = (input_amount * 25 * 3000) / 10000;
+    if (totalFees + fee > HALWA_SUPPLY) return 0;
+    else return (input_amount * 25 * 3000) / 10000;
+  }
+
+  function distLPFees(uint256 _amt) public returns (uint256) {
+    uint256 txFees = calLPFees(_amt);
+    totalFees += txFees;
+    for (uint256 i = 0; i < lp.length; i++) {
+      uint256 liq_ratio_bps = liquidity[lp[i]] * 10000 / totalLiquidity;
+      lpFees[lp[i]] += txFees * liq_ratio_bps / 10000;
+    }
+  }
+
   function ethToToken() public payable returns (uint256) {
     uint256 token_reserve = token.balanceOf(address(this));
     uint256 tokens_bought = price(msg.value, address(this).balance - msg.value, token_reserve);
     require(token.transfer(msg.sender, tokens_bought));
+    distLPFees(msg.value);
     return tokens_bought;
   }
 
@@ -40,14 +62,20 @@ contract DEX {
     (bool sent, ) = msg.sender.call{value: eth_bought}("");
     require(sent, "Failed to send user eth.");
     require(token.transferFrom(msg.sender, address(this), tokens));
+    distLPFees(tokens);
     return eth_bought;
   }
 
   function deposit() public payable returns (uint256) {
-    uint256 eth_reserve = address(this).balance;
+    uint256 eth_reserve = address(this).balance - msg.value;
     uint256 token_reserve = token.balanceOf(address(this));
     uint256 token_amount = ((msg.value * token_reserve) / eth_reserve) + 1;
     uint256 liquidity_minted = (msg.value * totalLiquidity) / eth_reserve;
+
+    if (liquidity[msg.sender] == 0) {
+      lp.push(msg.sender);
+    }
+
     liquidity[msg.sender] += liquidity_minted;
     totalLiquidity += liquidity_minted;
     require(token.transferFrom(msg.sender, address(this), token_amount));
@@ -61,11 +89,39 @@ contract DEX {
     console.log("token_reserve: %s,  eth_amount: %s, liq_amount: %s", token_reserve, eth_amount, liq_amount);
     uint256 token_amount = (token_reserve * liq_amount) / totalLiquidity;
     liquidity[msg.sender] -= liq_amount;
+
+    if (liquidity[msg.sender] == 0) {
+      uint256 i;
+      for (i = 0; i < lp.length; i++) {
+        if (lp[i] == msg.sender) {
+          delete lp[i];
+          break;
+        }
+      }
+      console.log("lp: %d", i);
+      for (i = i + 1; i < lp.length; i++) {
+        lp[i - 1] = lp[i];
+      }
+      lp.pop();
+    }
     totalLiquidity -= liq_amount;
+
     (bool sent,) = msg.sender.call{value: eth_amount}("");
     require(sent, "Failed to send user eth.");
     require(token.transfer(msg.sender, token_amount));
     return (eth_amount, token_amount);
+  }
+
+  function getLiquidityProviders() public view returns (address[] memory) {
+    return lp;
+  }
+
+  function claimFees() public payable returns (uint256) {
+    uint256 fee_to_claim = lpFees[msg.sender];
+    require(fee_to_claim > 0, "DEX: no fees to claim");
+    lpFees[msg.sender] = 0;
+    require(token.transfer(msg.sender, fee_to_claim));
+    return fee_to_claim;
   }
 
 }

@@ -10,7 +10,14 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     log: true,
   });
 
+  await deploy("Halwa", {
+    from: deployer,
+    log: true,
+  });
+
+  console.log("working here address: ", deployer);
   const balloons = await ethers.getContract("Balloons", deployer);
+  const halwa = await ethers.getContract("Halwa", deployer);
 
   await deploy("DEX", {
     from: deployer,
@@ -21,7 +28,20 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const dex = await ethers.getContract("DEX", deployer);
 
   // get 10 balloons on deploy
-  // await balloons.transfer(deployer.address, "" + 10 * 10 ** 18);
+  await balloons.transfer(
+    "0x988C2204BE3c39fDb67c2C67e0596f3fB142E938",
+    "" + 10 * 10 ** 18
+  );
+
+  await balloons.transfer(
+    "0x61BD02abf75B6bF8BA141Da1D2b52E1Fdf444D6e",
+    "" + 10 * 10 ** 18
+  );
+
+  await balloons.transfer(
+    "0x428b1752dcDc1332F36Fc1cD0bF5815fD0Ac13A9",
+    "" + 10 * 10 ** 18
+  );
 
   console.log(
     "Approving DEX (" + dex.address + ") to take Balloons from main account..."
@@ -29,9 +49,9 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   // If you are going to the testnet make sure your deployer account has enough ETH
   await balloons.approve(dex.address, ethers.utils.parseEther("100"));
   console.log("INIT exchange...");
-  await dex.init("" + 0.1 * 10 ** 18, {
-    value: ethers.utils.parseEther("0.1"),
+  await dex.init("" + 3 * 10 ** 18, {
+    value: ethers.utils.parseEther("3"),
     gasLimit: 200000,
   });
 };
-module.exports.tags = ["Balloons", "DEX"];
+module.exports.tags = ["Balloons", "DEX", "Halwa"];
