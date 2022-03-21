@@ -6,6 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract Halwa is ERC20 {
   constructor() ERC20("Halwa", "HLWA") {
       // This mints to the deployer
-      _mint(msg.sender, 100000 ether);
+      _mint(msg.sender, 1000000 ether);
   }
 }

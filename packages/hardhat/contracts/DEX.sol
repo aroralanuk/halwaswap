@@ -3,11 +3,15 @@ pragma solidity >=0.8.0 <0.9.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./lib/SafeMath.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract DEX {
   using SafeMath  for uint256;
   uint256 public HALWA_SUPPLY = 1000000 * 10**18;
   IERC20 token;
+  IERC20 lpToken;
+
+  AggregatorV3Interface internal priceFeed;
 
   uint256 public totalLiquidity;
   mapping (address => uint256) public liquidity;
@@ -16,15 +20,23 @@ contract DEX {
   mapping(address => uint256) public lpFees;
   uint256 public totalFees;
 
-  constructor(address token_addr) {
+  constructor(address token_addr, address lpToken_addr) {
     token = IERC20(token_addr);
+    lpToken = IERC20(lpToken_addr);
+    // rinkeby - 0x8A753747A1Fa494EC906cE90E9f37563A8AF630e
+    // kovan - 0x9326BFA02ADD2366b30bacB125260Af641031331
+    priceFeed = AggregatorV3Interface(0x9326BFA02ADD2366b30bacB125260Af641031331);
   }
+
+
+
 
   function init(uint256 tokens) public payable returns (uint256) {
     require(totalLiquidity == 0, "DEX: init - already has liquidity");
     totalLiquidity = address(this).balance;
     liquidity[msg.sender] = totalLiquidity;
     require(token.transferFrom(msg.sender, address(this), tokens));
+    require(lpToken.transferFrom(msg.sender, address(this), 1000000 * 10**18));
     return totalLiquidity;
   }
 
@@ -34,9 +46,12 @@ contract DEX {
   }
 
   function calLPFees(uint256 input_amount) public view returns (uint256) {
-    uint256 fee = (input_amount * 25 * 3000) / 10000;
+    // (,int256 price,,,) = priceFeed.latestRoundData();
+    // price / 10**8;
+    uint256 scaledPrice = 283865519773 / uint256(10**8);
+    uint256 fee = (input_amount * 25 * scaledPrice) / 10000;
     if (totalFees + fee > HALWA_SUPPLY) return 0;
-    else return (input_amount * 25 * 3000) / 10000;
+    else return fee;
   }
 
   function distLPFees(uint256 _amt) public returns (uint256) {
@@ -116,11 +131,12 @@ contract DEX {
     return lp;
   }
 
-  function claimFees() public payable returns (uint256) {
+  function claimFees() public returns (uint256) {
     uint256 fee_to_claim = lpFees[msg.sender];
     require(fee_to_claim > 0, "DEX: no fees to claim");
     lpFees[msg.sender] = 0;
-    require(token.transfer(msg.sender, fee_to_claim));
+    console.log("fee_to_claim: %s", fee_to_claim);
+    require(lpToken.transfer(msg.sender, fee_to_claim));
     return fee_to_claim;
   }
 

@@ -21,7 +21,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
   await deploy("DEX", {
     from: deployer,
-    args: [balloons.address],
+    args: [balloons.address, halwa.address],
     log: true,
   });
 
@@ -48,6 +48,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   );
   // If you are going to the testnet make sure your deployer account has enough ETH
   await balloons.approve(dex.address, ethers.utils.parseEther("100"));
+  await halwa.approve(dex.address, ethers.utils.parseEther("1000000"));
   console.log("INIT exchange...");
   await dex.init("" + 3 * 10 ** 18, {
     value: ethers.utils.parseEther("3"),
