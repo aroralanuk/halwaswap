@@ -488,6 +488,14 @@ function App(props) {
               contractConfig={contractConfig}
             />
             <Contract
+              name="MetaMultiSigWallet"
+              signer={userSigner}
+              provider={localProvider}
+              address={address}
+              blockExplorer={blockExplorer}
+              contractConfig={contractConfig}
+            />
+            <Contract
               name="Balloons"
               signer={userSigner}
               provider={localProvider}

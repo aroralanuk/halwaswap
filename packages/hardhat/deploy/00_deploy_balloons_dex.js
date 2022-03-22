@@ -54,5 +54,13 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     value: ethers.utils.parseEther("3"),
     gasLimit: 200000,
   });
+
+  await deploy("MetaMultiSigWallet", {
+    from: deployer,
+    args: [31337, [deployer], 1],
+    log: true,
+  });
+
+  const multiSig = await ethers.getContract("MetaMultiSigWallet", deployer);
 };
 module.exports.tags = ["Balloons", "DEX", "Halwa"];
