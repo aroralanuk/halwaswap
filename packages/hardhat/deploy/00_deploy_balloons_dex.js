@@ -57,7 +57,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
   await deploy("MetaMultiSigWallet", {
     from: deployer,
-    args: [31337, [deployer], 1],
+    args: [31337, [deployer, "0x988C2204BE3c39fDb67c2C67e0596f3fB142E938"], 1],
     log: true,
   });
 

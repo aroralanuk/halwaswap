@@ -56,8 +56,14 @@ contract MetaMultiSigWallet {
         // isSudo[sudo] = true;
     }
 
+    // TODO: why do we need this? shouldn't this be onlyOwner
     modifier onlySelf() {
         require(msg.sender == address(this), "Not Self");
+        _;
+    }
+
+    modifier onlyOwner() {
+        require(isOwner[msg.sender], "Not Owner");
         _;
     }
 
@@ -84,7 +90,9 @@ contract MetaMultiSigWallet {
 //         }
 //     }
 
-    function addSigner(address newSigner, uint256 newSignaturesRequired) public onlySelf {
+
+// function addSigner(address newSigner, uint256 newSignaturesRequired) public onlySelf {
+    function addSigner(address newSigner, uint256 newSignaturesRequired) public onlyOwner {
         require(newSigner != address(0), "addSigner: zero address");
         require(!isOwner[newSigner], "addSigner: owner not unique");
         require(newSignaturesRequired > 0, "addSigner: must be non-zero sigs required");
@@ -93,7 +101,7 @@ contract MetaMultiSigWallet {
         emit Owner(newSigner, isOwner[newSigner]);
     }
 
-    function removeSigner(address oldSigner, uint256 newSignaturesRequired) public onlySelf {
+    function removeSigner(address oldSigner, uint256 newSignaturesRequired) public onlyOwner {
         require(isOwner[oldSigner], "removeSigner: not owner");
         require(newSignaturesRequired > 0, "removeSigner: must be non-zero sigs required");
         isOwner[oldSigner] = false;
