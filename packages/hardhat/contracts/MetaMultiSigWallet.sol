@@ -12,10 +12,12 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./DEX.sol";
+import  "hardhat/console.sol";
 
 contract MetaMultiSigWallet {
     using ECDSA for bytes32;
 
+    event DEXCreated(address indexed dex);
     event Deposit(address indexed sender, uint256 amount, uint256 balance);
 //     event ExecuteTransaction(
 //         address indexed owner,
@@ -36,6 +38,7 @@ contract MetaMultiSigWallet {
     uint256 public chainId;
 //     mapping(address => bool) public isSudo; // SideQuest1: isSudo mapping!
     DEX halwaDEX; // SideQuest2: bringing in a different ext. contract that we will call some functions on!
+    address public halwaDEXAddr;
 
     constructor(
         uint256 _chainId,
@@ -62,11 +65,6 @@ contract MetaMultiSigWallet {
         _;
     }
 
-    modifier onlyOwner() {
-        require(isOwner[msg.sender], "Not Owner");
-        _;
-    }
-
 //     // SideQuest1: pairs with customRoles() function
 //     modifier customRules() {
 //         require(isSudo[msg.sender], "customRules: only Sudo accounts can propose executable txs.");
@@ -90,9 +88,19 @@ contract MetaMultiSigWallet {
 //         }
 //     }
 
+    function createDEX(address token_addr, address lpToken_addr) public  {
+        halwaDEX = new DEX(token_addr, lpToken_addr);
+        halwaDEXAddr = address(halwaDEX);
+    }
+
+    function deposit(uint256 _amount) public payable {
+        halwaDEX.deposit(_amount);
+        addSigner(msg.sender, 2);
+
+    }
 
 // function addSigner(address newSigner, uint256 newSignaturesRequired) public onlySelf {
-    function addSigner(address newSigner, uint256 newSignaturesRequired) public onlyOwner {
+    function addSigner(address newSigner, uint256 newSignaturesRequired) public {
         require(newSigner != address(0), "addSigner: zero address");
         require(!isOwner[newSigner], "addSigner: owner not unique");
         require(newSignaturesRequired > 0, "addSigner: must be non-zero sigs required");
@@ -101,7 +109,7 @@ contract MetaMultiSigWallet {
         emit Owner(newSigner, isOwner[newSigner]);
     }
 
-    function removeSigner(address oldSigner, uint256 newSignaturesRequired) public onlyOwner {
+    function removeSigner(address oldSigner, uint256 newSignaturesRequired) public onlySelf {
         require(isOwner[oldSigner], "removeSigner: not owner");
         require(newSignaturesRequired > 0, "removeSigner: must be non-zero sigs required");
         isOwner[oldSigner] = false;
